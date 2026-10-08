@@ -38,6 +38,18 @@ def test_valid_board_and_usage():
     assert set(result.usage.values()) == {3}
 
 
+@pytest.mark.parametrize("outside_dictionary_seed", [False, True])
+def test_fourth_use_rejects_board_without_hiding_accidental_words(outside_dictionary_seed):
+    extra = "abcghimno"
+    words = cycle_dictionary().words | {extra}
+    dictionary = Dictionary.from_words(words - {extra} if outside_dictionary_seed else words)
+    result = validate_board(Board(PIECES), dictionary, extra)
+    assert not result.valid
+    assert result.usage["abc"] == 4
+    assert {s.word for s in result.solutions} == words
+    assert "Piece abc occurs in 4 solution words; maximum is 3" in result.errors
+
+
 def test_all_accidental_words_and_permutations_count():
     dictionary = Dictionary.from_words("".join(c) for c in permutations(PIECES, 3))
     result = validate_board(Board(PIECES), dictionary)

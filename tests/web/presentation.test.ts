@@ -1,7 +1,9 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
-import App from '../../src/App';
+import App, { PuzzleGame } from '../../src/App';
+import musician from '../../src/data/musicianBoard.json';
+const puzzle = { board: parseBoard(musician), graph: buildGraph(parseBoard(musician)) }; 
 import fixture from '../../src/data/exampleBoard.json';
 import { parseBoard } from '../../src/game/boardParser';
 import { buildGraph } from '../../src/game/graph';
@@ -10,7 +12,7 @@ import { OctagramBoard } from '../../src/components/OctagramBoard';
 import { WordsPanel } from '../../src/components/WordsPanel';
 
 test('opens with eight empty positions, eight pieces, and no disclosed solutions', () => {
-  const html = renderToStaticMarkup(createElement(App));
+  const html = renderToStaticMarkup(createElement(PuzzleGame, { puzzle }));
   expect(html.match(/class="empty-slot"/g)).toHaveLength(8);
   expect(html.match(/aria-label="Piece /g)).toHaveLength(8);
   expect(html).toContain('graph-arrows');
@@ -32,20 +34,26 @@ test('the words panel contains only currently formed words, with no placeholders
 });
 
 test('renders nine continuous tapered arrows without leaking target word labels', () => {
-  const html = renderToStaticMarkup(createElement(App));
+  const html = renderToStaticMarkup(createElement(PuzzleGame, { puzzle }));
   expect(html.match(/class="arrow-body"/g)).toHaveLength(9);
   expect(html).not.toContain('route-header');
-  expect(html).toContain('one colored arrow through three pieces');
+  expect(html).toContain('aria-label="How to play"');
+  expect(html).toContain('<dialog');
+  expect(html).not.toContain('class="board-caption"');
+  expect(html.match(/class="arrow-hit-area"/g)).toHaveLength(9);
+  expect(html).not.toContain('clipPath=');
+  expect(html.match(/aria-pressed="false" aria-label="Highlight route/g)).toHaveLength(9);
 });
 
 test('formed word colors are displayed beside the word', () => {
-  const html = renderToStaticMarkup(createElement(WordsPanel, { words: ['header'], total: 9, colors: { header: ['#a34d36'] } }));
+  const html = renderToStaticMarkup(createElement(WordsPanel, { words: ['header'], total: 9, colors: { header: ['#a34d36'] }, highlightedWord: 'header' }));
   expect(html).toContain('background-color:#a34d36');
   expect(html).toContain('HEADER');
+  expect(html).toContain('aria-pressed="true" aria-label="Highlight HEADER"');
 });
 
 test('renders one arrowhead at the suffix and no intermediate arrowhead', () => {
-  const html = renderToStaticMarkup(createElement(App));
+  const html = renderToStaticMarkup(createElement(PuzzleGame, { puzzle }));
   expect(html.match(/marker-end=/g)).toHaveLength(9);
   expect(html).not.toContain('marker-mid=');
   expect(html).not.toContain('marker-start=');
@@ -63,4 +71,11 @@ test('completed arrow body and tip are gray and painted before colored arrows', 
   }));
   expect(html.match(/fill="#c7ccc5"/g)).toHaveLength(2);
   expect(html.indexOf('class="word-arrow completed"')).toBeLessThan(html.indexOf('class="word-arrow"'));
+});
+
+test('refresh starts generation and offers no puzzle upload', () => {
+  const html = renderToStaticMarkup(createElement(App));
+  expect(html).toContain('Creating your puzzle');
+  expect(html).not.toContain('type="file"');
+  expect(html).not.toContain('Load puzzle');
 });

@@ -68,6 +68,9 @@ def validate_board(
     usage = {
         p: sum(any(p in c for c in s.constructions) for s in solutions) for p in pieces
     }
+    for piece, count in usage.items():
+        if count > 3:
+            errors.append(f"Piece {piece} occurs in {count} solution words; maximum is 3")
     if sum(count >= 2 for count in usage.values()) < 7:
         errors.append("At least seven pieces must occur in at least two solution words")
     if seed is not None and seed not in found:

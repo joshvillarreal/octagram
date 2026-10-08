@@ -1,16 +1,14 @@
-import { useMemo, useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, DragOverlay, PointerSensor, pointerWithin, rectIntersection, useSensor, useSensors } from '@dnd-kit/core';
 import type { CollisionDetection, DragEndEvent } from '@dnd-kit/core';
-import initialData from './data/musicianBoard.json';
 import { parseBoard } from './game/boardParser';
 import { buildGraph } from './game/graph';
 import { bankPieces, emptyPlacement, movePiece, shuffle, shuffleBank } from './game/gameState';
-import { detectWordColors, isSolved } from './game/wordDetection';
+import { detectWordColors, formedWord, isSolved } from './game/wordDetection';
 import { OctagramBoard } from './components/OctagramBoard';
 import { PieceBank } from './components/PieceBank';
 import { WordsPanel } from './components/WordsPanel';
-import { CompletionBanner } from './components/CompletionBanner';
+import { GameHelp } from './components/GameHelp';
 
 function prepare(data: unknown) {
   const board = parseBoard(data);
@@ -22,21 +20,56 @@ const collisionDetection: CollisionDetection = args => {
 };
 
 export default function App() {
-  const [puzzle, setPuzzle] = useState(() => prepare(initialData));
+  const [round, setRound] = useState<ReturnType<typeof prepare> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const worker = new Worker(new URL('./game/generator.worker.ts', import.meta.url), { type: 'module' });
+    setError(null);
+    worker.onmessage = event => {
+      if (event.data.error) setError(event.data.error);
+      else {
+        try {
+          const next = prepare(event.data.board);
+          setRound(next);
+          try { sessionStorage.setItem('octagram-last-pieces', [...next.board.pieces].sort().join(':')); } catch { /* Storage may be disabled. */ }
+        }
+        catch { setError('Unable to prepare this puzzle. Try again.'); }
+      }
+      worker.terminate();
+    };
+    worker.onerror = () => { setError('Unable to generate a puzzle. Try again.'); worker.terminate(); };
+    let previousPieces = '';
+    try { previousPieces = sessionStorage.getItem('octagram-last-pieces') ?? ''; } catch { /* Generation also works without storage. */ }
+    worker.postMessage({ previousPieces });
+    return () => worker.terminate();
+  }, [attempt]);
+  if (round) return <PuzzleGame puzzle={round} onPlayAgain={() => { setRound(null); setAttempt(n => n + 1); }} />;
+  return <main className="page-shell"><header className="page-header"><h1>Octagram</h1><GameHelp /></header>
+    {error ? <div className="error-banner" role="alert">{error}<button type="button" className="text-button" onClick={() => setAttempt(n => n + 1)}>Try again</button></div>
+      : <p className="game-status" role="status">Creating your puzzle…</p>}
+  </main>;
+}
+
+export function PuzzleGame({ puzzle, onPlayAgain }: { puzzle: ReturnType<typeof prepare>; onPlayAgain?: () => void }) {
   const { board, graph } = puzzle;
   const [placement, setPlacement] = useState(() => emptyPlacement(graph));
   const [order, setOrder] = useState(() => shuffle(board.pieces));
   const [selected, setSelected] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [focusedRoute, setFocusedRoute] = useState<string | null>(null);
   const suppressClick = useRef(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const targetWords = useMemo(() => new Set(board.solutions.map(s => s.word)), [board]);
   const wordColors = detectWordColors(graph, placement, targetWords);
   const words = Object.keys(wordColors).sort();
   const solved = isSolved(graph, placement, words, targetWords);
+  const highlightedWord = formedWord(graph.wordPaths?.find(route => route.id === focusedRoute)?.nodes ?? [], placement, targetWords);
+  function highlightWord(word: string) {
+    const route = graph.wordPaths?.find(route => formedWord(route.nodes, placement, targetWords) === word);
+    setFocusedRoute(highlightedWord === word ? null : route?.id ?? null);
+  }
   const bank = bankPieces(board.pieces, placement, order);
-  const placedCount = graph.nodes.filter(node => placement[node]).length;
 
   function select(piece: string) {
     if (suppressClick.current) return;
@@ -55,38 +88,23 @@ export default function App() {
   function reset() {
     setPlacement(emptyPlacement(graph));
     setSelected(null);
-  }
-  async function loadBoard(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    try {
-      const next = prepare(JSON.parse(await file.text()));
-      setPuzzle(next);
-      setPlacement(emptyPlacement(next.graph));
-      setOrder(shuffle(next.board.pieces));
-      setSelected(null);
-      setError(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to read board JSON.');
-    }
+    setFocusedRoute(null);
   }
 
   return (
-    <main className="page-shell">
-      <header className="page-header"><div className="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 3h10l8 8v10l-8 8H11l-8-8V11Z" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="16" cy="16" r="3" fill="currentColor" /></svg><h1>Octagram</h1></div><span className="edition">THE WORD GRAPH</span></header>
-      <div className="game-toolbar"><p>Eight pieces. One arrangement. Every word.</p><div className="toolbar-actions"><button type="button" className="text-button" onClick={reset}>Reset</button><label className="load-button">Load puzzle<input type="file" accept=".json,application/json" onChange={loadBoard} aria-label="Load puzzle JSON" /></label></div></div>
-      {error && <div className="error-banner" role="alert"><strong>Could not load this puzzle.</strong> {error}<button type="button" className="text-button" onClick={() => setError(null)}>Dismiss</button></div>}
+    <main className="page-shell" onKeyDown={event => { if (event.key === 'Escape') setFocusedRoute(null); }}>
+      <header className="page-header"><div className="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 3h10l8 8v10l-8 8H11l-8-8V11Z" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="16" cy="16" r="3" fill="currentColor" /></svg><h1>Octagram</h1></div><div className="toolbar-actions"><GameHelp /></div></header>
       <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={event => { setActive(String(event.active.id)); setSelected(null); }} onDragEnd={dragEnd} onDragCancel={() => setActive(null)}>
         <div className="game-layout">
-          <PieceBank pieces={bank} selected={selected} onSelect={select} onReturn={() => selected && place(selected, 'bank')} onShuffle={() => setOrder(current => shuffleBank(board.pieces, placement, current))} />
-          <OctagramBoard graph={graph} placement={placement} targetWords={targetWords} selected={selected} solved={solved} onSelect={select} onPlace={id => selected && !suppressClick.current && place(selected, id)} />
-          <WordsPanel words={words} total={targetWords.size} colors={wordColors} />
+          <div className="game-sidebar">
+          <PieceBank pieces={bank} selected={selected} onSelect={select} onReset={reset} onShuffle={() => setOrder(current => shuffleBank(board.pieces, placement, current))}
+            canReturn={selected !== null && Object.values(placement).includes(selected)} onReturn={() => selected && !suppressClick.current && place(selected, 'bank')} />
+          <WordsPanel words={words} total={targetWords.size} colors={wordColors} highlightedWord={highlightedWord} onHighlightWord={highlightWord} />
+          </div>
+          <OctagramBoard onReturn={piece => { if (!suppressClick.current) place(piece, 'bank'); }} onPlayAgain={onPlayAgain} focusedRoute={focusedRoute} onFocusRoute={setFocusedRoute} graph={graph} placement={placement} targetWords={targetWords} selected={selected} solved={solved} onSelect={select} onPlace={id => selected && !suppressClick.current && place(selected, id)} />
         </div>
         <DragOverlay dropAnimation={null}>{active && <span className="piece-tile overlay-tile">{active.toUpperCase()}</span>}</DragOverlay>
       </DndContext>
-      <div className="game-status">{solved ? <CompletionBanner count={words.length} /> : <p>{selected ? `${selected.toUpperCase()} selected. Choose a position, or return it to the bank.` : `${placedCount} of 8 pieces placed. Words appear only while their paths are connected.`}</p>}</div>
-      <footer>Follow each colored arrow from its first piece, through the middle piece, to its last. Solve every word at once.</footer>
     </main>
   );
 }

@@ -87,3 +87,30 @@ test('continuous swoops graze the middle position and avoid every box on desktop
     }
   }
 }, 20_000);
+
+test('crowded middle tiles use a wider fan with distinct lanes inside the safe disk', () => {
+  const nodes = Array.from({ length: 8 }, (_, i) => `n${i}`);
+  const graph = {
+    nodes, edges: [],
+    wordPaths: Array.from({ length: 7 }, (_, i) => ({
+      id: `dense-${i}`, nodes: [nodes[i + 1], nodes[0], nodes[(i + 2) % 7 + 1]] as [string, string, string], color: '#326b91',
+    })),
+  };
+  for (const width of [600, 288]) {
+    const height = Math.max(SLOT_HEIGHT, 44 * 600 / width);
+    const radius = innerCircleRadius(height);
+    const arrows = buildWordArrows(graph, radius);
+    expect(new Set(arrows.map(a => `${a.geometry.middle.x}:${a.geometry.middle.y}`)).size).toBe(7);
+    const positions = arrows.map(a => a.geometry.middle.x);
+    expect(Math.max(...positions) - Math.min(...positions)).toBeGreaterThan(40);
+    for (const arrow of arrows) {
+      const c = arrow.geometry;
+      for (let step = 0; step <= 40; step++) {
+        for (const point of [cubic(c.start, c.firstControl, c.incomingControl, c.middle, step / 40), cubic(c.middle, c.outgoingControl, c.lastControl, c.end, step / 40)]) {
+          expect(Math.hypot(point.x - 300, point.y - 300)).toBeLessThanOrEqual(radius + 1e-8);
+          for (let box = 0; box < 8; box++) expect(insideBox(point, box, height)).toBe(false);
+        }
+      }
+    }
+  }
+});

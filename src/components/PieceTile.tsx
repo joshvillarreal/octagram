@@ -1,13 +1,13 @@
 import { useDraggable } from '@dnd-kit/core';
 
-interface Props { piece: string; selected: boolean; onSelect: () => void }
-export function PieceTile({ piece, selected, onSelect }: Props) {
+interface Props { piece: string; selected: boolean; onSelect: () => void; onReturn?: () => void }
+export function PieceTile({ piece, selected, onSelect, onReturn }: Props) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: piece });
   return (
     <button ref={setNodeRef} {...attributes} {...listeners}
       className={`piece-tile ${selected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
       aria-label={`Piece ${piece.toUpperCase()}`} aria-pressed={selected}
-      onClick={onSelect} type="button">
+      onClick={event => { if (event.detail < 2) onSelect(); }} onDoubleClick={onReturn} type="button">
       {piece.toUpperCase()}
     </button>
   );

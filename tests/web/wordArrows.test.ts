@@ -91,7 +91,7 @@ test('breaking a word immediately restores its arrow color and normal ordering',
   expect(presentWordArrows(arrows, graph, placement, targets).find(a => a.id === route.id)!.completed).toBe(true);
   placement[node('er')] = null;
   const restored = presentWordArrows(arrows, graph, placement, targets);
-  expect(restored.map(arrow => arrow.id)).toEqual(arrows.map(arrow => arrow.id));
+  expect(restored.map(arrow => arrow.id)).toEqual(presentWordArrows(arrows, graph, emptyPlacement(graph), targets).map(arrow => arrow.id));
   expect(restored.every(arrow => !arrow.completed && arrow.displayColor === arrow.color)).toBe(true);
 });
 
@@ -100,5 +100,5 @@ test('non-target words remain colored and do not move backward', () => {
   const placement = { ...emptyPlacement(graph), [node('he')]: 'he', [node('ad')]: 'ad', [node('er')]: 'th' };
   const presented = presentWordArrows(arrows, graph, placement, targets);
   expect(presented.every(arrow => !arrow.completed)).toBe(true);
-  expect(presented.map(arrow => arrow.id)).toEqual(arrows.map(arrow => arrow.id));
+  expect(presented.map(arrow => arrow.id)).toEqual(presentWordArrows(arrows, graph, emptyPlacement(graph), targets).map(arrow => arrow.id));
 });

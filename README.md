@@ -14,11 +14,13 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite, usually `http://localhost:5173`. The first generated `musician` board (nine words) opens with eight empty positions and a shuffled piece bank.
+Open the local URL printed by Vite, usually `http://localhost:5173`. Each refresh generates a new board, opening with eight empty positions and a shuffled piece bank. Use the ⓘ button for instructions.
 Drag with a mouse or touch, or click/tap a piece and then a destination. Keyboard
 users can use Tab and Enter/Space for the same select-and-place interaction.
 Dropping onto an occupied position swaps board pieces; a displaced bank piece
-returns to the bank. Drop on the bank or use **Return selected piece** to remove it.
+returns to the bank. Drop on the bank to remove it, or select a placed piece and
+click an empty area of the Pieces bank. Keyboard users can Tab to the bank and
+press Enter or Space after selecting a placed piece.
 **Reset** clears the arrangement; **Shuffle bank** only reorders unplaced pieces.
 
 The Words panel shows only words formed by the current arrangement, alphabetically.
@@ -36,17 +38,29 @@ npm run preview    # Serve the production build locally
 
 `src/game/` contains parsing, validation, layout, graph, placement, and word
 recognition. `src/components/` contains React presentation and drag/drop bindings.
-`src/data/musicianBoard.json` is the current puzzle; the original development
-fixture remains in `src/data/exampleBoard.json`; `tests/web/` contains TypeScript
-tests. Browser input validation accepts historical 1–3-letter pieces and multiple
-constructions; deeper generation rules belong to the Python generator. No English
-dictionary, board search, or persistence runs in the browser.
+The browser worker uses `src/data/americanDictionary.json`: 12,814 American
+English words of length 6–9 with wordfreq Zipf scores of at least 3. It chooses
+random constructible seeds, searches candidates, and exhaustively validates all
+336 ordered triples before ranking valid boards. Rules match the Python generator:
+eight unique 2–3-letter pieces, three distinct pieces per word, all accidental
+words included, no ambiguous constructions or morphological duplicates, and at
+least seven pieces used in two or more words, with every piece used at most three times. Scoring favors common words and
+three or four uses per piece. Morphological checks retain the Python suffix
+heuristic's limitations.
+
+Search runs off the main thread in batches of 15,000 attempts, retrying up to
+12 batches before offering **Try again**. No fixed puzzle fallback is used.
+Session storage excludes the previous board on refresh when storage is available.
+Reset clears the current arrangement without generating another board.
+
+Rebuild the dictionary with `python scripts/export-browser-dictionary.py` after
+installing the Python dependencies. The browser needs no backend or Python.
+Dictionary attribution and licensing are in `public/dictionary-NOTICE.txt`.
+The former musician and example boards remain as test fixtures.
 
 ## Website releases and hosting
 
-The game is a static website: visitors need only a browser. Python is used to
-prepare puzzles offline, and no backend, dictionary download, or API key is needed
-for gameplay.
+The game is a static website: visitors need only a browser. The dictionary is bundled with the generation worker; no backend or API key is needed for gameplay.
 
 ```sh
 npm ci
@@ -104,17 +118,7 @@ legacy JSON containing `usage` and `word_frequencies`, and full Python results
 containing `board.pieces` and `solutions[].constructions`. For a generator result
 array, the first board is loaded. An empty array is an error.
 
-Use **Load puzzle** to select another JSON file; loading starts a fresh game.
-For example, save generator output with:
-
-```sh
-python -m octagram find tester --num-results 1 > puzzle.json
-```
-
-Alternatively replace `src/data/musicianBoard.json` to change the default puzzle.
-The current round uses the first result of `python -m octagram find musician`
-with default search settings. Loading or refreshing starts with empty positions.
-Invalid input displays an explanation and leaves an already-running puzzle intact.
+The JSON formats remain supported by developer tools and fixtures; the game no longer offers file uploads.
 
 Every solution is decomposed by checking ordered triples of distinct pieces. All
 valid constructions are retained internally. Each contributes first → second and
@@ -145,7 +149,7 @@ the same target word display it only once.
 
 A Python 3.11+ toolkit for generating and validating eight-piece word boards.
 Every solution joins exactly three distinct, atomic pieces in any order. Validation
-exhaustively checks all 336 ordered triples, retains accidental words, requires two- or three-letter pieces, and requires seven pieces to occur in two or more words.
+exhaustively checks all 336 ordered triples, retains accidental words, requires two- or three-letter pieces, and requires seven pieces to occur in two or more words, and rejects any piece appearing in more than three solution words.
 Every dictionary-valid word must have exactly one construction on the board.
 For example, a board containing `con`, `cre`, `te`, `cr`, and `ete` is rejected
 because both `con + cre + te` and `con + cr + ete` form `concrete`.
@@ -200,7 +204,7 @@ Ranking favors each piece appearing in **three or four distinct solution words**
 The usage score is `2 * sum(1 / (1 + distance))`, where distance is the number of
 uses below three or above four (zero within the target). Both underused and
 overused pieces receive less credit. The three-to-four target is a ranking
-preference; the minimum-usage validation rule remains seven pieces used at least twice.
+preference; validation requires seven pieces used at least twice and caps every piece at three uses. Thus three is the highest-scoring valid usage.
 
 The total also includes `0.25 * min(solution_count, 10)` and a commonality bonus of
 `0.25 * mean(log10(1 + frequency))`, with frequency in occurrences per billion words.
