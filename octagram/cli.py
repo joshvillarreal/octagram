@@ -36,6 +36,13 @@ def main(argv: list[str] | None = None) -> int:
         "--seed", help="Required solution allowed outside the dictionary"
     )
     for command in (find, evaluate):
+        command.add_argument(
+            "--max-piece-uses",
+            type=int,
+            choices=range(3, 7),
+            default=3,
+            help="Maximum solution words per piece (Easy=3, Medium=4, Hard=6)",
+        )
         source = command.add_mutually_exclusive_group()
         source.add_argument(
             "--dictionary", help="Use a word-list file instead of wordfreq"
@@ -71,7 +78,10 @@ def main(argv: list[str] | None = None) -> int:
 
             if args.command == "evaluate":
                 result = validate_board(
-                    Board(tuple(p.lower() for p in args.pieces)), dictionary, args.seed
+                    Board(tuple(p.lower() for p in args.pieces)),
+                    dictionary,
+                    args.seed,
+                    args.max_piece_uses,
                 )
                 output = serialize(result)
             else:
@@ -83,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
                         args.num_results,
                         args.attempts,
                         args.random_seed,
+                        args.max_piece_uses,
                     )
                 ]
     except (OSError, ValueError) as error:

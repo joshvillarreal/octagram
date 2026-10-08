@@ -1,9 +1,11 @@
 import dictionary from '../data/americanDictionary.json';
+import { isDifficulty, maxPieceUses } from './difficulty';
 import { createRandomBoardSearch } from './randomBoard';
 
 self.onmessage = event => {
   try {
-    const search = createRandomBoardSearch(dictionary);
+    const difficulty = isDifficulty(event.data.difficulty) ? event.data.difficulty : 'easy';
+    const search = createRandomBoardSearch(dictionary, Math.random, maxPieceUses(difficulty));
     for (let batch = 0; batch < 12; batch++) {
       const board = search(15000, event.data.previousPieces ?? '');
       if (board) { self.postMessage({ board }); return; }

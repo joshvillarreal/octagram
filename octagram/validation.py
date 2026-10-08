@@ -34,13 +34,18 @@ def morphological_duplicates(left: str, right: str, dictionary: Dictionary) -> b
 
 
 def validate_board(
-    board: Board, dictionary: Dictionary, seed: str | None = None
+    board: Board,
+    dictionary: Dictionary,
+    seed: str | None = None,
+    max_piece_uses: int = 3,
 ) -> ValidationResult:
     """Validate dictionary words plus the explicitly requested seed, if any.
 
     The seed alone is exempt from dictionary membership. It still must be
     constructible, unambiguous, and obey every other board rule.
     """
+    if not isinstance(max_piece_uses, int) or not 3 <= max_piece_uses <= 6:
+        raise ValueError("Maximum piece usage must be an integer between 3 and 6")
     seed = normalize_word(seed) if seed is not None else None
     pieces = board.pieces
     errors = []
@@ -69,8 +74,10 @@ def validate_board(
         p: sum(any(p in c for c in s.constructions) for s in solutions) for p in pieces
     }
     for piece, count in usage.items():
-        if count > 3:
-            errors.append(f"Piece {piece} occurs in {count} solution words; maximum is 3")
+        if count > max_piece_uses:
+            errors.append(
+                f"Piece {piece} occurs in {count} solution words; maximum is {max_piece_uses}"
+            )
     if sum(count >= 2 for count in usage.values()) < 7:
         errors.append("At least seven pieces must occur in at least two solution words")
     if seed is not None and seed not in found:

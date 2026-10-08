@@ -2,6 +2,7 @@
 
 Run with Python 3.11+ after pip install -e . from the repository root.
 """
+
 import json
 import math
 from pathlib import Path
@@ -12,7 +13,10 @@ from octagram.dictionary import Dictionary
 
 root = Path(__file__).resolve().parents[1]
 dictionary = Dictionary.from_wordfreq()
-output = {word: round(math.log10(frequency), 2) for word, frequency in dictionary.frequencies.items()}
+output = {
+    word: round(math.log10(frequency), 2)
+    for word, frequency in dictionary.frequencies.items()
+}
 (root / "src/data/americanDictionary.json").write_text(
     json.dumps(output, sort_keys=True, separators=(",", ":")) + "\n"
 )

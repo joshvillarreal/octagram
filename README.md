@@ -44,7 +44,7 @@ random constructible seeds, searches candidates, and exhaustively validates all
 336 ordered triples before ranking valid boards. Rules match the Python generator:
 eight unique 2–3-letter pieces, three distinct pieces per word, all accidental
 words included, no ambiguous constructions or morphological duplicates, and at
-least seven pieces used in two or more words, with every piece used at most three times. Scoring favors common words and
+least seven pieces used in two or more words, with every piece used at most the selected complexity limit. Scoring favors common words and
 three or four uses per piece. Morphological checks retain the Python suffix
 heuristic's limitations.
 
@@ -52,6 +52,16 @@ Search runs off the main thread in batches of 15,000 attempts, retrying up to
 12 batches before offering **Try again**. No fixed puzzle fallback is used.
 Session storage excludes the previous board on refresh when storage is available.
 Reset clears the current arrangement without generating another board.
+
+Use the gear icon next to Help and the three-position slider to select **Easy** (maximum 3 words per tile),
+**Medium** (4), or **Hard** (6). A change starts a fresh puzzle;
+the preference is saved across refreshes when local storage is available. These
+are upper limits, not guaranteed usage counts. The Dark mode switch changes the
+whole app palette immediately and saves the preference across refreshes.
+The Incorrect feedback switch enables or disables the brief arrow and tile pulses
+without restarting the puzzle; its preference also persists. Every other validity rule stays
+in force. The Python CLI supports the same caps with `--max-piece-uses 3|4|5|6`.
+
 
 Rebuild the dictionary with `python scripts/export-browser-dictionary.py` after
 installing the Python dependencies. The browser needs no backend or Python.
@@ -149,7 +159,7 @@ the same target word display it only once.
 
 A Python 3.11+ toolkit for generating and validating eight-piece word boards.
 Every solution joins exactly three distinct, atomic pieces in any order. Validation
-exhaustively checks all 336 ordered triples, retains accidental words, requires two- or three-letter pieces, and requires seven pieces to occur in two or more words, and rejects any piece appearing in more than three solution words.
+exhaustively checks all 336 ordered triples, retains accidental words, requires two- or three-letter pieces, and requires seven pieces to occur in two or more words, and rejects any piece appearing in more solution words than the selected usage cap (default 3).
 Every dictionary-valid word must have exactly one construction on the board.
 For example, a board containing `con`, `cre`, `te`, `cr`, and `ete` is rejected
 because both `con + cre + te` and `con + cr + ete` form `concrete`.
@@ -204,7 +214,7 @@ Ranking favors each piece appearing in **three or four distinct solution words**
 The usage score is `2 * sum(1 / (1 + distance))`, where distance is the number of
 uses below three or above four (zero within the target). Both underused and
 overused pieces receive less credit. The three-to-four target is a ranking
-preference; validation requires seven pieces used at least twice and caps every piece at three uses. Thus three is the highest-scoring valid usage.
+preference; validation requires seven pieces used at least twice and caps every piece at the configured limit (default 3). Thus three is the highest-scoring valid usage on Easy.
 
 The total also includes `0.25 * min(solution_count, 10)` and a commonality bonus of
 `0.25 * mean(log10(1 + frequency))`, with frequency in occurrences per billion words.

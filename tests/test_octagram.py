@@ -39,10 +39,14 @@ def test_valid_board_and_usage():
 
 
 @pytest.mark.parametrize("outside_dictionary_seed", [False, True])
-def test_fourth_use_rejects_board_without_hiding_accidental_words(outside_dictionary_seed):
+def test_fourth_use_rejects_board_without_hiding_accidental_words(
+    outside_dictionary_seed,
+):
     extra = "abcghimno"
     words = cycle_dictionary().words | {extra}
-    dictionary = Dictionary.from_words(words - {extra} if outside_dictionary_seed else words)
+    dictionary = Dictionary.from_words(
+        words - {extra} if outside_dictionary_seed else words
+    )
     result = validate_board(Board(PIECES), dictionary, extra)
     assert not result.valid
     assert result.usage["abc"] == 4
@@ -268,3 +272,32 @@ def test_cli_find_and_evaluate_accept_absent_seed(tmp_path, capsys):
     result = json.loads(capsys.readouterr().out)
     assert result["valid"]
     assert seed in {s["word"] for s in result["solutions"]}
+
+
+@pytest.mark.parametrize("cap", [3, 4, 5, 6])
+def test_piece_usage_cap_is_tunable_and_inclusive(cap):
+    extras = ["abcghimno", "abcjklpqr", "abcpqrstu", "abcmnovwx"]
+    words = cycle_dictionary().words | set(extras[: cap - 3])
+    result = validate_board(
+        Board(PIECES), Dictionary.from_words(words), max_piece_uses=cap
+    )
+    assert result.valid
+    assert result.usage["abc"] == cap
+    over = validate_board(
+        Board(PIECES),
+        Dictionary.from_words(words | {extras[cap - 3]}),
+        max_piece_uses=cap,
+    )
+    assert not over.valid
+    assert over.usage["abc"] == cap + 1
+
+
+def test_cli_exposes_configurable_piece_usage(tmp_path, capsys):
+    path = tmp_path / "words.txt"
+    path.write_text("\n".join(sorted(cycle_dictionary().words | {"abcghimno"})))
+    main(["evaluate", *PIECES, "--dictionary", str(path)])
+    assert not json.loads(capsys.readouterr().out)["valid"]
+    main(["evaluate", *PIECES, "--dictionary", str(path), "--max-piece-uses", "4"])
+    result = json.loads(capsys.readouterr().out)
+    assert result["valid"]
+    assert result["usage"]["abc"] == 4

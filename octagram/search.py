@@ -17,6 +17,7 @@ def find_boards(
     num_results: int = 10,
     attempts: int = 10000,
     random_seed: int = 0,
+    max_piece_uses: int = 3,
 ) -> tuple[ValidationResult, ...]:
     """Grow overlapping word constructions; reproducible but not exhaustive.
 
@@ -26,6 +27,8 @@ def find_boards(
     """
     if num_results < 1 or attempts < 1:
         raise ValueError("num_results and attempts must be positive")
+    if not isinstance(max_piece_uses, int) or not 3 <= max_piece_uses <= 6:
+        raise ValueError("Maximum piece usage must be an integer between 3 and 6")
     seed = normalize_word(seed)
     splits = split_word(seed)
     if not splits:
@@ -72,7 +75,7 @@ def find_boards(
         if pieces in seen:
             continue
         seen.add(pieces)
-        result = validate_board(Board(pieces), dictionary, seed)
+        result = validate_board(Board(pieces), dictionary, seed, max_piece_uses)
         if result.valid:
             accepted.append(result)
     accepted.sort(key=lambda r: (-score_board(r, dictionary), r.board.pieces))

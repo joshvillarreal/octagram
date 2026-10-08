@@ -8,6 +8,12 @@ import { detectWordColors, formedWord, isSolved } from './game/wordDetection';
 import { OctagramBoard } from './components/OctagramBoard';
 import { PieceBank } from './components/PieceBank';
 import { WordsPanel } from './components/WordsPanel';
+import { GameSettings } from './components/GameSettings';
+import { savedDifficulty } from './game/difficulty';
+import type { Difficulty } from './game/difficulty';
+import { savedIncorrectFeedback } from './game/feedbackSettings';
+import { savedTheme } from './game/theme';
+import type { Theme } from './game/theme';
 import { GameHelp } from './components/GameHelp';
 
 function prepare(data: unknown) {
@@ -23,6 +29,25 @@ export default function App() {
   const [round, setRound] = useState<ReturnType<typeof prepare> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [difficulty, setDifficulty] = useState<Difficulty>(savedDifficulty);
+  function changeDifficulty(next: Difficulty) {
+    if (next === difficulty) return;
+    try { localStorage.setItem('octagram-difficulty', next); } catch { /* Storage is optional. */ }
+    setRound(null);
+    setDifficulty(next);
+  }
+  const [theme, setTheme] = useState<Theme>(savedTheme);
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
+  function changeTheme(next: Theme) {
+    setTheme(next);
+    try { localStorage.setItem('octagram-theme', next); } catch { /* Storage is optional. */ }
+  }
+  const [incorrectFeedback, setIncorrectFeedback] = useState(savedIncorrectFeedback);
+  function changeIncorrectFeedback(enabled: boolean) {
+    setIncorrectFeedback(enabled);
+    try { localStorage.setItem('octagram-incorrect-feedback', String(enabled)); } catch { /* Storage is optional. */ }
+  }
+  const settings = <GameSettings incorrectFeedback={incorrectFeedback} onIncorrectFeedbackChange={changeIncorrectFeedback} difficulty={difficulty} onChange={changeDifficulty} theme={theme} onThemeChange={changeTheme} />;
   useEffect(() => {
     const worker = new Worker(new URL('./game/generator.worker.ts', import.meta.url), { type: 'module' });
     setError(null);
@@ -41,17 +66,17 @@ export default function App() {
     worker.onerror = () => { setError('Unable to generate a puzzle. Try again.'); worker.terminate(); };
     let previousPieces = '';
     try { previousPieces = sessionStorage.getItem('octagram-last-pieces') ?? ''; } catch { /* Generation also works without storage. */ }
-    worker.postMessage({ previousPieces });
+    worker.postMessage({ previousPieces, difficulty });
     return () => worker.terminate();
-  }, [attempt]);
-  if (round) return <PuzzleGame puzzle={round} onPlayAgain={() => { setRound(null); setAttempt(n => n + 1); }} />;
-  return <main className="page-shell"><header className="page-header"><h1>Octagram</h1><GameHelp /></header>
-    {error ? <div className="error-banner" role="alert">{error}<button type="button" className="text-button" onClick={() => setAttempt(n => n + 1)}>Try again</button></div>
+  }, [attempt, difficulty]);
+  return <main className="page-shell"><header className="page-header"><div className="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 3h10l8 8v10l-8 8H11l-8-8V11Z" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="16" cy="16" r="3" fill="currentColor" /></svg><h1>Octagram</h1></div><div className="toolbar-actions"><GameHelp />{settings}</div></header>
+    {round ? <PuzzleGame puzzle={round} incorrectFeedback={incorrectFeedback} embedded onPlayAgain={() => { setRound(null); setAttempt(n => n + 1); }} />
+      : error ? <div className="error-banner" role="alert">{error}<button type="button" className="text-button" onClick={() => setAttempt(n => n + 1)}>Try again</button></div>
       : <p className="game-status" role="status">Creating your puzzle…</p>}
   </main>;
 }
 
-export function PuzzleGame({ puzzle, onPlayAgain }: { puzzle: ReturnType<typeof prepare>; onPlayAgain?: () => void }) {
+export function PuzzleGame({ puzzle, onPlayAgain, embedded = false, incorrectFeedback = true }: { puzzle: ReturnType<typeof prepare>; onPlayAgain?: () => void; embedded?: boolean; incorrectFeedback?: boolean }) {
   const { board, graph } = puzzle;
   const [placement, setPlacement] = useState(() => emptyPlacement(graph));
   const [order, setOrder] = useState(() => shuffle(board.pieces));
@@ -92,8 +117,8 @@ export function PuzzleGame({ puzzle, onPlayAgain }: { puzzle: ReturnType<typeof 
   }
 
   return (
-    <main className="page-shell" onKeyDown={event => { if (event.key === 'Escape') setFocusedRoute(null); }}>
-      <header className="page-header"><div className="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 3h10l8 8v10l-8 8H11l-8-8V11Z" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="16" cy="16" r="3" fill="currentColor" /></svg><h1>Octagram</h1></div><div className="toolbar-actions"><GameHelp /></div></header>
+    <div className={embedded ? undefined : 'page-shell'} onKeyDown={event => { if (event.key === 'Escape') setFocusedRoute(null); }}>
+      {!embedded && <header className="page-header"><div className="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 3h10l8 8v10l-8 8H11l-8-8V11Z" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="16" cy="16" r="3" fill="currentColor" /></svg><h1>Octagram</h1></div><div className="toolbar-actions"><GameHelp /></div></header>}
       <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={event => { setActive(String(event.active.id)); setSelected(null); }} onDragEnd={dragEnd} onDragCancel={() => setActive(null)}>
         <div className="game-layout">
           <div className="game-sidebar">
@@ -101,10 +126,10 @@ export function PuzzleGame({ puzzle, onPlayAgain }: { puzzle: ReturnType<typeof 
             canReturn={selected !== null && Object.values(placement).includes(selected)} onReturn={() => selected && !suppressClick.current && place(selected, 'bank')} />
           <WordsPanel words={words} total={targetWords.size} colors={wordColors} highlightedWord={highlightedWord} onHighlightWord={highlightWord} />
           </div>
-          <OctagramBoard onReturn={piece => { if (!suppressClick.current) place(piece, 'bank'); }} onPlayAgain={onPlayAgain} focusedRoute={focusedRoute} onFocusRoute={setFocusedRoute} graph={graph} placement={placement} targetWords={targetWords} selected={selected} solved={solved} onSelect={select} onPlace={id => selected && !suppressClick.current && place(selected, id)} />
+          <OctagramBoard incorrectFeedback={incorrectFeedback} onReturn={piece => { if (!suppressClick.current) place(piece, 'bank'); }} onPlayAgain={onPlayAgain} focusedRoute={focusedRoute} onFocusRoute={setFocusedRoute} graph={graph} placement={placement} targetWords={targetWords} selected={selected} solved={solved} onSelect={select} onPlace={id => selected && !suppressClick.current && place(selected, id)} />
         </div>
         <DragOverlay dropAnimation={null}>{active && <span className="piece-tile overlay-tile">{active.toUpperCase()}</span>}</DragOverlay>
       </DndContext>
-    </main>
+    </div>
   );
 }

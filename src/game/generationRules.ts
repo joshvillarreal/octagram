@@ -19,7 +19,8 @@ export function morphologicalDuplicates(left: string, right: string): boolean {
   return forms.has(long);
 }
 /** Exhaustive membership and rule checks; never drop accidental words. */
-export function validateGeneratedBoard(pieces: string[], dictionary: WordDictionary, seed: string): OctagramBoard | null {
+export function validateGeneratedBoard(pieces: string[], dictionary: WordDictionary, seed: string, maxUses = 3): OctagramBoard | null {
+  if (!Number.isInteger(maxUses) || maxUses < 3 || maxUses > 6) throw new Error('Maximum tile usage must be between 3 and 6.');
   if (pieces.length !== 8 || new Set(pieces).size !== 8 || pieces.some(p => !/^[a-z]{2,3}$/.test(p))) return null;
   const found = new Map<string, Construction>();
   for (const a of pieces) for (const b of pieces) for (const c of pieces) {
@@ -33,7 +34,7 @@ export function validateGeneratedBoard(pieces: string[], dictionary: WordDiction
   const words = [...found.keys()].sort();
   for (let i = 0; i < words.length; i++) for (let j = i + 1; j < words.length; j++) if (morphologicalDuplicates(words[i], words[j])) return null;
   const usage = pieces.map(p => [...found.values()].filter(parts => parts.includes(p)).length);
-  if (usage.some(n => n > 3)) return null;
+  if (usage.some(n => n > maxUses)) return null;
   if (usage.filter(n => n >= 2).length < 7) return null;
   return { pieces: [...pieces], solutions: words.map(word => ({ word, constructions: [found.get(word)!], frequency: 10 ** dictionary[word] })) };
 }

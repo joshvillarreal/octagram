@@ -4,7 +4,7 @@ import type { WordDictionary } from './generationRules';
 
 function pairKey(a: string, b: string): string { return a < b ? `${a}:${b}` : `${b}:${a}`; }
 /** Index once per worker; search and scoring remain separate from game rules. */
-export function createRandomBoardSearch(dictionary: WordDictionary, random: () => number = Math.random) {
+export function createRandomBoardSearch(dictionary: WordDictionary, random: () => number = Math.random, maxUses = 3) {
   const extensions = new Map<string, Set<string>>();
   const seeds = Object.keys(dictionary).filter(word => splitSeed(word).length > 0);
   if (!seeds.length) throw new Error('No constructible dictionary words.');
@@ -47,7 +47,7 @@ export function createRandomBoardSearch(dictionary: WordDictionary, random: () =
       if (key === excludedPieces) continue;
       if (seen.has(key)) continue;
       seen.add(key);
-      const board = validateGeneratedBoard(pieces, dictionary, seed);
+      const board = validateGeneratedBoard(pieces, dictionary, seed, maxUses);
       if (!board) continue;
       board.score = scoreGeneratedBoard(board);
       if (!best || board.score > best.score!) best = board;

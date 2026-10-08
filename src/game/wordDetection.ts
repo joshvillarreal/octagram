@@ -8,6 +8,16 @@ export function formedWord(nodes: string[], placement: Placement, targetWords: S
   return targetWords.has(word) ? word : null;
 }
 
+/** Feedback is for newly completed/changed routes, never incomplete or unchanged ones. */
+export function invalidRouteChanges(graph: Graph, before: Placement, after: Placement, targetWords: Set<string>): string[] {
+  return (graph.wordPaths ?? []).filter(route => {
+    const pieces = route.nodes.map(node => after[node]);
+    return new Set(route.nodes).size === 3 && pieces.every(Boolean)
+      && !targetWords.has(pieces.join(''))
+      && route.nodes.some(node => before[node] !== after[node]);
+  }).map(route => route.id);
+}
+
 /** Only complete same-color routes count; vocabulary is still the supplied target set. */
 export function detectWordColors(graph: Graph, placement: Placement, targetWords: Set<string>): Record<string, string[]> {
   const matches: Record<string, string[]> = {};

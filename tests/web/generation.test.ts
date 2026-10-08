@@ -54,3 +54,16 @@ test('fourth use rejects the whole board including accidental words', () => {
   expect(validateGeneratedBoard(pieces, synthetic, 'abcdef')).not.toBeNull();
   expect(validateGeneratedBoard(pieces, { ...synthetic, abghop: 4 }, 'abcdef')).toBeNull();
 });
+
+test.each([3, 4, 5, 6])('maximum usage %i is an inclusive hard cap', cap => {
+  const extraWords = ['abghop', 'abcdij', 'abefkl'].slice(0, cap - 3);
+  const source = { ...synthetic, ...Object.fromEntries(extraWords.map(word => [word, 4])) };
+  const board = validateGeneratedBoard(pieces, source, 'abcdef', cap)!;
+  expect(board).not.toBeNull();
+  expect(board.solutions.filter(s => s.constructions[0].includes('ab'))).toHaveLength(cap);
+  const overLimit = { ...source, [ ['abghop', 'abcdij', 'abefkl', 'abijmn'][cap - 3] ]: 4 };
+  expect(validateGeneratedBoard(pieces, overLimit, 'abcdef', cap)).toBeNull();
+});
+test('invalid difficulty caps cannot bypass validation', () => {
+  for (const cap of [2, 7, 3.5, NaN]) expect(() => validateGeneratedBoard(pieces, synthetic, 'abcdef', cap)).toThrow();
+});
