@@ -95,10 +95,17 @@ of `dist/` directly at the domain root.
 
 ## Share the game with GitHub Pages
 
-In the repository's **Settings → Pages**, choose **GitHub Actions** as the
-publishing source. Push changes to `main`; `.github/workflows/jekyll-gh-pages.yml` tests and
-builds the game, then deploys `dist/`. Pull requests run checks without publishing.
-You can also run the workflow manually from the Actions tab.
+In the repository's **Settings → Pages**, choose **Deploy from a branch**, then
+select **main** and **/docs** and save. GitHub publishes the committed production
+files in `docs/`; the repository root contains development HTML and cannot serve
+the game directly.
+
+Before pushing game changes, run `npm run build`. This builds `dist/` and replaces
+the generated `docs/` directory with the same production files, including a
+`.nojekyll` marker. Commit the updated `docs/` files along with source changes.
+Do not edit `docs/` by hand. `.github/workflows/jekyll-gh-pages.yml` runs tests and
+checks that the committed Pages build is current; GitHub's branch publishing
+handles deployment after the push.
 
 For `joshvillarreal/octagram`, the expected address is
 `https://joshvillarreal.github.io/octagram/`. Wait for the Pages deployment to
