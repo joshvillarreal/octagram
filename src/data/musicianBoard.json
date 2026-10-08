@@ -1,0 +1,130 @@
+{
+  "board": {
+    "pieces": [
+      "al",
+      "com",
+      "ed",
+      "ian",
+      "ic",
+      "mag",
+      "mus",
+      "ter"
+    ]
+  },
+  "solutions": [
+    {
+      "word": "altered",
+      "constructions": [
+        [
+          "al",
+          "ter",
+          "ed"
+        ]
+      ]
+    },
+    {
+      "word": "comedian",
+      "constructions": [
+        [
+          "com",
+          "ed",
+          "ian"
+        ]
+      ]
+    },
+    {
+      "word": "comedic",
+      "constructions": [
+        [
+          "com",
+          "ed",
+          "ic"
+        ]
+      ]
+    },
+    {
+      "word": "comical",
+      "constructions": [
+        [
+          "com",
+          "ic",
+          "al"
+        ]
+      ]
+    },
+    {
+      "word": "magical",
+      "constructions": [
+        [
+          "mag",
+          "ic",
+          "al"
+        ]
+      ]
+    },
+    {
+      "word": "magician",
+      "constructions": [
+        [
+          "mag",
+          "ic",
+          "ian"
+        ]
+      ]
+    },
+    {
+      "word": "musical",
+      "constructions": [
+        [
+          "mus",
+          "ic",
+          "al"
+        ]
+      ]
+    },
+    {
+      "word": "musician",
+      "constructions": [
+        [
+          "mus",
+          "ic",
+          "ian"
+        ]
+      ]
+    },
+    {
+      "word": "mustered",
+      "constructions": [
+        [
+          "mus",
+          "ter",
+          "ed"
+        ]
+      ]
+    }
+  ],
+  "usage": {
+    "al": 4,
+    "com": 3,
+    "ed": 4,
+    "ian": 3,
+    "ic": 6,
+    "mag": 2,
+    "mus": 3,
+    "ter": 2
+  },
+  "errors": [],
+  "valid": true,
+  "score": 15.86197304028551,
+  "word_frequencies": {
+    "altered": 10471.285480508985,
+    "comedian": 9120.108393559096,
+    "comedic": 2398.83291901949,
+    "comical": 1698.2436524617442,
+    "magical": 16595.869074375598,
+    "magician": 3388.441561392024,
+    "musical": 32359.36569296281,
+    "musician": 10232.929922807536,
+    "mustered": 1479.1083881682073
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "pieces": ["ad", "al", "er", "he", "imb", "ing", "le", "th"],
+  "solutions": [
+    {"word": "header", "pieces": ["he", "ad", "er"]},
+    {"word": "heading", "pieces": ["he", "ad", "ing"]},
+    {"word": "healer", "pieces": ["he", "al", "er"]},
+    {"word": "healing", "pieces": ["he", "al", "ing"]},
+    {"word": "health", "pieces": ["he", "al", "th"]},
+    {"word": "leader", "pieces": ["le", "ad", "er"]},
+    {"word": "leading", "pieces": ["le", "ad", "ing"]},
+    {"word": "lethal", "pieces": ["le", "th", "al"]},
+    {"word": "thimble", "pieces": ["th", "imb", "le"]}
+  ]
+}

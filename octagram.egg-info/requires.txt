@@ -1,0 +1,6 @@
+wordfreq<4,>=3.1
+spylls<0.2,>=0.1.7
+
+[dev]
+pytest>=8
+ruff>=0.12

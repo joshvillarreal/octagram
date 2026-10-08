@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: octagram
+Version: 0.1.0
+Summary: Exhaustive Octagram board validation and deterministic board search
+Requires-Python: >=3.11
+Requires-Dist: wordfreq<4,>=3.1
+Requires-Dist: spylls<0.2,>=0.1.7
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: ruff>=0.12; extra == "dev"
