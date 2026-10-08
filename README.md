@@ -72,7 +72,7 @@ of `dist/` directly at the domain root.
 ## Share the game with GitHub Pages
 
 In the repository's **Settings → Pages**, choose **GitHub Actions** as the
-publishing source. Push changes to `main`; `.github/workflows/pages.yml` tests and
+publishing source. Push changes to `main`; `.github/workflows/jekyll-gh-pages.yml` tests and
 builds the game, then deploys `dist/`. Pull requests run checks without publishing.
 You can also run the workflow manually from the Actions tab.
 
