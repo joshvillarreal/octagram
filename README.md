@@ -69,6 +69,23 @@ as the `octagram-site` artifact. It checks and packages changes; publication is
 performed separately through Sites. Other static hosts can serve the contents
 of `dist/` directly at the domain root.
 
+## Share the game with GitHub Pages
+
+In the repository's **Settings → Pages**, choose **GitHub Actions** as the
+publishing source. Push changes to `main`; `.github/workflows/pages.yml` tests and
+builds the game, then deploys `dist/`. Pull requests run checks without publishing.
+You can also run the workflow manually from the Actions tab.
+
+For `joshvillarreal/octagram`, the expected address is
+`https://joshvillarreal.github.io/octagram/`. Wait for the Pages deployment to
+succeed before sharing it. Relative asset URLs allow the game to run under this
+repository path as well as a domain root.
+
+The website is publicly accessible. Its robots file and `noindex` metadata ask
+search engines not to list it, but do not restrict access or guarantee secrecy.
+Friends need only the link and a browser; no GitHub account is required for a
+public Pages site. Repository visibility and plan must support GitHub Pages.
+
 ## Puzzle JSON
 
 A normalized board uses eight unique pieces and a nonempty solution list:
