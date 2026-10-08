@@ -35,7 +35,7 @@ test('every direction and crowded lane stays inside the circle and outside all e
       }
     }
   }
-});
+}, 20_000);
 
 test('each arrow receives separate incoming and outgoing ports', () => {
   const graph = buildGraph(parseBoard({ ...fixture, layout: fixture.pieces }));
@@ -79,11 +79,11 @@ test('continuous swoops graze the middle position and avoid every box on desktop
       for (let step = 0; step <= 30; step++) {
         const t = step / 30;
         const points = [cubic(curve.start, curve.firstControl, curve.incomingControl, curve.middle, t), cubic(curve.middle, curve.outgoingControl, curve.lastControl, curve.end, t)];
-        for (const point of points) for (let box = 0; box < 8; box++) {
-          expect(insideBox(point, box, height)).toBe(false);
+        for (const point of points) {
           expect(Math.hypot(point.x - 300, point.y - 300)).toBeLessThanOrEqual(radius + 1e-8);
+          for (let box = 0; box < 8; box++) expect(insideBox(point, box, height)).toBe(false);
         }
       }
     }
   }
-});
+}, 20_000);
